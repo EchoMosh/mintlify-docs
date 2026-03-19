@@ -1,0 +1,163 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "ChatGrid API",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#7C3AED",
+    "light": "#A78BFA",
+    "dark": "#5B21B6",
+    "anchors": {
+      "from": "#7C3AED",
+      "to": "#5B21B6"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://www.chatgrid.ai"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get API Key",
+    "url": "https://www.chatgrid.ai/settings/api-keys"
+  },
+  "anchors": [
+    {
+      "name": "API Status",
+      "icon": "signal",
+      "url": "https://status.chatgrid.ai"
+    }
+  ],
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    },
+    {
+      "name": "Cookbooks",
+      "url": "cookbooks"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "introduction",
+        "use-cases",
+        "mcp-setup",
+        "authentication",
+        "rate-limits",
+        "errors",
+        "pagination"
+      ]
+    },
+    {
+      "group": "Boards",
+      "pages": [
+        "api-reference/boards/list-boards",
+        "api-reference/boards/create-board",
+        "api-reference/boards/get-board",
+        "api-reference/boards/update-board",
+        "api-reference/boards/delete-board",
+        "api-reference/boards/duplicate-board"
+      ]
+    },
+    {
+      "group": "Chats",
+      "pages": [
+        "api-reference/chats/list-chats",
+        "api-reference/chats/create-chat",
+        "api-reference/chats/get-chat",
+        "api-reference/chats/update-chat",
+        "api-reference/chats/delete-chat"
+      ]
+    },
+    {
+      "group": "Messages",
+      "pages": [
+        "api-reference/messages/list-messages",
+        "api-reference/messages/send-message"
+      ]
+    },
+    {
+      "group": "Nodes",
+      "pages": [
+        "api-reference/nodes/list-nodes",
+        "api-reference/nodes/create-node",
+        "api-reference/nodes/get-node",
+        "api-reference/nodes/update-node",
+        "api-reference/nodes/delete-node",
+        "api-reference/nodes/batch-nodes"
+      ]
+    },
+    {
+      "group": "Edges",
+      "pages": [
+        "api-reference/edges/list-edges",
+        "api-reference/edges/create-edge",
+        "api-reference/edges/update-edge",
+        "api-reference/edges/delete-edge"
+      ]
+    },
+    {
+      "group": "Documents",
+      "pages": [
+        "api-reference/documents/vectorize",
+        "api-reference/documents/search",
+        "api-reference/documents/process"
+      ]
+    },
+    {
+      "group": "Assets",
+      "pages": [
+        "api-reference/assets/upload-asset",
+        "api-reference/assets/list-assets",
+        "api-reference/assets/delete-asset"
+      ]
+    },
+    {
+      "group": "Jobs",
+      "pages": ["api-reference/jobs/list-jobs", "api-reference/jobs/get-job"]
+    },
+    {
+      "group": "Me",
+      "pages": [
+        "api-reference/me/get-profile",
+        "api-reference/me/get-usage",
+        "api-reference/me/list-api-keys",
+        "api-reference/me/create-api-key",
+        "api-reference/me/revoke-api-key"
+      ]
+    },
+    {
+      "group": "Cookbooks",
+      "pages": [
+        "cookbooks/quickstart",
+        "cookbooks/team-knowledge",
+        "cookbooks/knowledge-base",
+        "cookbooks/mcp-workflow",
+        "cookbooks/streaming-responses"
+      ]
+    }
+  ],
+  "openapi": "openapi.yaml",
+  "api": {
+    "baseUrl": "https://api.chatgrid.ai/v1",
+    "auth": {
+      "method": "bearer"
+    }
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true
+  },
+  "footerSocials": {
+    "github": "https://github.com/chatgrid",
+    "discord": "https://discord.gg/chatgrid",
+    "x": "https://x.com/chatgridai"
+  }
+}
