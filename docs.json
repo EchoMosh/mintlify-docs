@@ -22,7 +22,7 @@
     "primary": {
       "type": "button",
       "label": "Get API Key",
-      "href": "https://www.chatgrid.ai/settings/api-keys"
+      "href": "https://chatgrid.ai/dashboard"
     }
   },
   "navigation": {
