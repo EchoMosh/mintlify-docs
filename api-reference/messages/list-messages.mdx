@@ -1,0 +1,68 @@
+---
+title: "List Messages"
+api: "GET /v1/boards/{boardId}/chats/{chatId}/messages"
+description: "Returns a paginated list of messages in a chat thread."
+---
+
+<ParamField path="boardId" type="string" required>
+  Board UUID.
+</ParamField>
+
+<ParamField path="chatId" type="string" required>
+  Chat thread UUID.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={50}>
+  Number of items per page (1-100).
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Opaque cursor from a previous response.
+</ParamField>
+
+<ParamField query="order" type="string" default="asc">
+  Sort direction by `created_at`. Defaults to `asc` (chronological) for
+  messages, unlike other endpoints which default to `desc`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl "https://api.chatgrid.ai/v1/boards/a1b2c3d4-e5f6-7890-abcd-ef1234567890/chats/b2c3d4e5-f6a7-8901-bcde-f12345678901/messages?limit=50" \
+  -H "Authorization: Bearer cgk_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "role": "user",
+      "content": "What are the top SaaS marketing channels?",
+      "model": null,
+      "created_at": "2026-03-15T12:50:00.000Z",
+      "metadata": null
+    },
+    {
+      "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+      "role": "assistant",
+      "content": "Here are the top 3 SaaS marketing channels:\n\n1. **Content Marketing & SEO** ...",
+      "model": "anthropic/claude-sonnet-4",
+      "created_at": "2026-03-15T12:50:05.000Z",
+      "metadata": {
+        "usage": {
+          "prompt_tokens": 245,
+          "completion_tokens": 312,
+          "total_tokens": 557
+        },
+        "finish_reason": "stop"
+      }
+    }
+  ],
+  "has_more": false,
+  "cursor": null
+}
+```
+</ResponseExample>

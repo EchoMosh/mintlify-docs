@@ -1,0 +1,109 @@
+---
+title: "Use Cases"
+description: "How teams use ChatGrid to stop losing knowledge."
+---
+
+## 1. New dev onboarding
+
+<CardGroup cols={2}>
+  <Card title="Before" icon="xmark" color="#ef4444">
+    3 days of "ask Sarah, she knows." New devs piece together tribal knowledge from stale wikis and outdated READMEs. Sarah is in meetings all day.
+  </Card>
+  <Card title="After" icon="check" color="#22c55e">
+    Open the project board. Ask AI "how does auth work here?" Get an answer **citing the actual architecture doc** your team uploaded last month.
+  </Card>
+</CardGroup>
+
+```
+New dev asks: "How does auth work in this project?"
+
+AI responds:
+  "Based on the architecture doc uploaded by Sarah (March 2):
+   We use Supabase Auth with JWTs. The middleware validates tokens
+   in src/middleware/auth.ts. RLS policies handle row-level access.
+   See the full doc on the board."
+```
+
+The new dev is productive on day 1, not day 4.
+
+---
+
+## 2. Shared team knowledge
+
+<CardGroup cols={2}>
+  <Card title="Before" icon="xmark" color="#ef4444">
+    Someone finds a critical blog post about a production issue pattern. Shares it in Slack. It's buried under 200 messages in 2 days. Nobody can find it again.
+  </Card>
+  <Card title="After" icon="check" color="#22c55e">
+    Add it to the board. The content is vectorized. Every dev and every AI assistant on the project can find it **forever**.
+  </Card>
+</CardGroup>
+
+```
+Dev: "Search the board for connection pooling issues"
+
+AI responds:
+  "Found 2 relevant sources:
+   1. Blog post 'PgBouncer gotchas in serverless' (added by Jake, March 5)
+   2. Your team's incident postmortem from Feb 28
+   Both mention setting pool_mode=transaction. Here's the summary..."
+```
+
+Knowledge survives Slack. It survives team changes. It's always findable.
+
+---
+
+## 3. Learning a new technology
+
+<CardGroup cols={2}>
+  <Card title="Before" icon="xmark" color="#ef4444">
+    Watch a 45-minute YouTube tutorial. Forget 80% within a week. Search for the same thing again. Rewatch parts of it. Repeat.
+  </Card>
+  <Card title="After" icon="check" color="#22c55e">
+    Add the YouTube video to the board. The transcript is vectorized automatically. Ask AI about any part of it, anytime.
+  </Card>
+</CardGroup>
+
+```
+Dev: "What did that Inngest tutorial say about retry configuration?"
+
+AI responds:
+  "From the video 'Inngest Deep Dive' (timestamp 23:14):
+   Set maxRetries in the function config. Default is 3.
+   Use backoff: 'exponential' for API calls.
+   The presenter recommended starting with 5 retries for webhooks."
+```
+
+Watch once. Remember forever.
+
+---
+
+## 4. Working in Claude Code
+
+<CardGroup cols={2}>
+  <Card title="Before" icon="xmark" color="#ef4444">
+    Claude Code has no idea about your project's tribal knowledge. It gives generic answers. You paste context manually every time.
+  </Card>
+  <Card title="After" icon="check" color="#22c55e">
+    Claude Code searches your team's ChatGrid board. Answers are grounded in your actual docs, tutorials, and decisions. No copy-pasting.
+  </Card>
+</CardGroup>
+
+```
+You (in Claude Code): "How should I handle rate limiting for our API?"
+
+Claude Code searches your ChatGrid board automatically.
+
+Claude Code responds:
+  "Based on your team's architecture decisions board:
+   You're using Inngest's built-in rateLimit (set in planAgent.ts).
+   The current limits are 100/day/user for plan agents and
+   50/day/agent for email agents. The decision doc from March 4
+   explains why these numbers were chosen."
+```
+
+Your AI assistant knows what your team knows.
+
+<Note>
+  To set up MCP in Claude Code, see the [MCP Setup guide](/mcp-setup).
+</Note>

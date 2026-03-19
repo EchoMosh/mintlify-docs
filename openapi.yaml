@@ -1,0 +1,2726 @@
+openapi: 3.1.0
+info:
+  title: ChatGrid API
+  version: "1.0"
+  description: |
+    The ChatGrid API lets you programmatically manage boards, chats, messages,
+    nodes, edges, documents, assets, jobs, and user settings on the ChatGrid
+    AI agent platform.
+
+    All endpoints are served from `https://api.chatgrid.ai/v1`.
+  contact:
+    name: ChatGrid Support
+    url: https://www.chatgrid.ai
+    email: support@chatgrid.ai
+
+servers:
+  - url: https://api.chatgrid.ai/v1
+    description: Production
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Boards
+    description: Canvas boards that contain nodes, edges, chats, documents, and assets.
+  - name: Chats
+    description: Chat threads scoped to a board.
+  - name: Messages
+    description: Messages within a chat thread, including AI-generated responses.
+  - name: Nodes
+    description: Visual nodes on a board canvas.
+  - name: Edges
+    description: Connections between nodes on a board.
+  - name: Documents
+    description: Document processing, vectorization, and semantic search.
+  - name: Assets
+    description: File uploads attached to a board.
+  - name: Jobs
+    description: Async background jobs.
+  - name: Me
+    description: Current user profile, usage, and API key management.
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Pass your API key (prefixed `cgk_`) or a Supabase JWT in the
+        `Authorization: Bearer <token>` header.
+
+  headers:
+    X-RateLimit-Limit:
+      description: Maximum requests allowed in the current window.
+      schema:
+        type: integer
+        example: 120
+    X-RateLimit-Remaining:
+      description: Requests remaining in the current window.
+      schema:
+        type: integer
+        example: 117
+    X-RateLimit-Reset:
+      description: Unix epoch (seconds) when the window resets.
+      schema:
+        type: integer
+        example: 1711843260
+    Retry-After:
+      description: Seconds until the rate limit resets. Returned only on 429 responses.
+      schema:
+        type: integer
+        example: 42
+
+  schemas:
+    # ── Envelope helpers ──
+    ErrorResponse:
+      type: object
+      required: [object, status, code, message]
+      properties:
+        object:
+          type: string
+          enum: [error]
+        status:
+          type: integer
+          example: 400
+        code:
+          type: string
+          example: validation_error
+        message:
+          type: string
+          example: "Invalid request body"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              path:
+                type: string
+              message:
+                type: string
+
+    # ── Board ──
+    Board:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        name:
+          type: string
+          example: "Q1 Marketing Plan"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T10:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T12:45:00.000Z"
+        is_public:
+          type: boolean
+          example: false
+        public_access_level:
+          type: string
+          nullable: true
+          example: null
+        viewport_x:
+          type: number
+          example: 0
+        viewport_y:
+          type: number
+          example: 0
+        viewport_zoom:
+          type: number
+          example: 1
+
+    BoardFull:
+      allOf:
+        - $ref: "#/components/schemas/Board"
+        - type: object
+          properties:
+            flow_state:
+              type: object
+              description: Full canvas state including nodes, edges, and viewport.
+              properties:
+                viewMode:
+                  type: string
+                  enum: [canvas, docs]
+                nodes:
+                  type: array
+                  items:
+                    type: object
+                edges:
+                  type: array
+                  items:
+                    type: object
+                viewport:
+                  type: object
+                  properties:
+                    x:
+                      type: number
+                    y:
+                      type: number
+                    zoom:
+                      type: number
+
+    # ── Chat ──
+    ChatThread:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+        title:
+          type: string
+          example: "Brainstorm session"
+        node_id:
+          type: string
+          nullable: true
+          example: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T10:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T12:45:00.000Z"
+        last_message_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-03-15T12:50:00.000Z"
+
+    ChatThreadFull:
+      allOf:
+        - $ref: "#/components/schemas/ChatThread"
+        - type: object
+          properties:
+            memory:
+              type: array
+              nullable: true
+              items:
+                type: string
+              example: ["User prefers concise answers", "Project deadline is April 1"]
+            metadata:
+              type: object
+              nullable: true
+
+    # ── Message ──
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "d4e5f6a7-b8c9-0123-defa-234567890123"
+        role:
+          type: string
+          enum: [user, assistant, system]
+          example: "assistant"
+        content:
+          type: string
+          example: "Here are three ideas for your marketing campaign..."
+        model:
+          type: string
+          nullable: true
+          example: "anthropic/claude-sonnet-4"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T12:50:00.000Z"
+        metadata:
+          type: object
+          nullable: true
+          properties:
+            usage:
+              type: object
+              properties:
+                prompt_tokens:
+                  type: integer
+                  example: 245
+                completion_tokens:
+                  type: integer
+                  example: 312
+                total_tokens:
+                  type: integer
+                  example: 557
+            finish_reason:
+              type: string
+              example: "stop"
+
+    # ── Node ──
+    Node:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "e5f6a7b8-c9d0-1234-efab-345678901234"
+        node_type:
+          type: string
+          example: "chatNode"
+        position_x:
+          type: number
+          example: 250.5
+        position_y:
+          type: number
+          example: 120.0
+        node_data:
+          type: object
+          example: { "label": "Research Agent" }
+        parent_node_id:
+          type: string
+          format: uuid
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T10:31:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T10:31:00.000Z"
+
+    # ── Edge ──
+    Edge:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "f6a7b8c9-d0e1-2345-fabc-456789012345"
+        board_id:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        source_node_id:
+          type: string
+          format: uuid
+          example: "e5f6a7b8-c9d0-1234-efab-345678901234"
+        target_node_id:
+          type: string
+          format: uuid
+          example: "11223344-5566-7788-99aa-bbccddeeff00"
+        edge_type:
+          type: string
+          example: "default"
+        edge_data:
+          type: object
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T10:35:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T10:35:00.000Z"
+
+    # ── Asset ──
+    Asset:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "aabb1122-3344-5566-7788-99aabbccddee"
+        url:
+          type: string
+          format: uri
+          example: "https://storage.chatgrid.ai/board-files/usr_123/brd_456/1711843260000-report.pdf"
+        filename:
+          type: string
+          example: "report.pdf"
+        size:
+          type: integer
+          example: 245760
+        content_type:
+          type: string
+          example: "application/pdf"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T11:00:00.000Z"
+
+    # ── Job ──
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "ccdd1122-3344-5566-7788-99aabbccddee"
+        type:
+          type: string
+          example: "document_process"
+        status:
+          type: string
+          enum: [processing, completed, failed]
+          example: "processing"
+        result:
+          nullable: true
+          example: null
+        error:
+          type: string
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-03-15T11:00:00.000Z"
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+
+    # ── Search result ──
+    SearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "dd112233-4455-6677-8899-aabbccddeeff"
+        content:
+          type: string
+          example: "The quarterly revenue increased by 15%..."
+        node_id:
+          type: string
+          format: uuid
+          nullable: true
+          example: "e5f6a7b8-c9d0-1234-efab-345678901234"
+        metadata:
+          type: object
+          example: { "chunkIndex": 0, "totalChunks": 5, "sourceType": "api_vectorize" }
+        score:
+          type: number
+          nullable: true
+          example: 0.87
+
+    # ── User ──
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "11aabb22-cc33-dd44-ee55-ff6677889900"
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: "moshi@chatgrid.ai"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-10T08:00:00.000Z"
+        auth_mode:
+          type: string
+          enum: [api-key, jwt]
+          example: "api-key"
+
+    # ── Usage ──
+    Usage:
+      type: object
+      properties:
+        credits_remaining:
+          type: integer
+          example: 4200
+        total_credits_allocated:
+          type: integer
+          example: 5000
+        monthly_allowance:
+          type: integer
+          example: 5000
+        purchased_credits:
+          type: integer
+          example: 0
+        last_reset_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-03-01T00:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-03-15T12:00:00.000Z"
+
+    # ── API Key ──
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "ee112233-4455-6677-8899-aabbccddeeff"
+        key_prefix:
+          type: string
+          example: "cgk_live_a1b2"
+        name:
+          type: string
+          example: "Production key"
+        scopes:
+          type: array
+          items:
+            type: string
+            enum: [read, write, admin]
+          example: ["read", "write"]
+        rate_limit:
+          type: integer
+          example: 120
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-03-15T12:00:00.000Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-03-10T09:00:00.000Z"
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+
+    ApiKeyCreated:
+      allOf:
+        - $ref: "#/components/schemas/ApiKey"
+        - type: object
+          properties:
+            raw_key:
+              type: string
+              description: The full API key. Shown only once at creation time.
+              example: "cgk_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+
+    # ── Batch result ──
+    BatchResult:
+      type: object
+      properties:
+        created:
+          type: integer
+          example: 3
+        updated:
+          type: integer
+          example: 1
+        deleted:
+          type: integer
+          example: 0
+        errors:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+              message:
+                type: string
+
+  parameters:
+    boardId:
+      name: boardId
+      in: path
+      required: true
+      description: Board UUID.
+      schema:
+        type: string
+        format: uuid
+        example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    chatId:
+      name: chatId
+      in: path
+      required: true
+      description: Chat thread UUID.
+      schema:
+        type: string
+        format: uuid
+        example: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+
+    nodeId:
+      name: id
+      in: path
+      required: true
+      description: Node UUID.
+      schema:
+        type: string
+        format: uuid
+        example: "e5f6a7b8-c9d0-1234-efab-345678901234"
+
+    edgeId:
+      name: id
+      in: path
+      required: true
+      description: Edge UUID.
+      schema:
+        type: string
+        format: uuid
+        example: "f6a7b8c9-d0e1-2345-fabc-456789012345"
+
+    assetId:
+      name: id
+      in: path
+      required: true
+      description: Asset filename identifier.
+      schema:
+        type: string
+        example: "1711843260000-report.pdf"
+
+    jobId:
+      name: id
+      in: path
+      required: true
+      description: Job UUID.
+      schema:
+        type: string
+        format: uuid
+        example: "ccdd1122-3344-5566-7788-99aabbccddee"
+
+    apiKeyId:
+      name: id
+      in: path
+      required: true
+      description: API key UUID.
+      schema:
+        type: string
+        format: uuid
+        example: "ee112233-4455-6677-8899-aabbccddeeff"
+
+    limitParam:
+      name: limit
+      in: query
+      required: false
+      description: Maximum number of items to return (1-100, default 50).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+
+    cursorParam:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor for pagination. Pass the `cursor` value from a previous response.
+      schema:
+        type: string
+        example: "eyJpZCI6ImExYjJjM2Q0LWU1ZjYtNzg5MC1hYmNkLWVmMTIzNDU2Nzg5MCIsImNyZWF0ZWRfYXQiOiIyMDI2LTAzLTE1VDEwOjMwOjAwLjAwMFoifQ"
+
+    orderParam:
+      name: order
+      in: query
+      required: false
+      description: Sort direction by `created_at`.
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token.
+      headers:
+        X-RateLimit-Limit:
+          $ref: "#/components/headers/X-RateLimit-Limit"
+        X-RateLimit-Remaining:
+          $ref: "#/components/headers/X-RateLimit-Remaining"
+        X-RateLimit-Reset:
+          $ref: "#/components/headers/X-RateLimit-Reset"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            object: error
+            status: 401
+            code: unauthorized
+            message: "Missing Authorization header"
+
+    Forbidden:
+      description: Token lacks the required scope.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            object: error
+            status: 403
+            code: forbidden
+            message: "Missing required scope: write"
+
+    NotFound:
+      description: The requested resource does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            object: error
+            status: 404
+            code: not_found
+            message: "Board not found"
+
+    ValidationError:
+      description: Request body or query parameters failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            object: error
+            status: 400
+            code: validation_error
+            message: "Invalid request body"
+            details:
+              - code: too_small
+                path: name
+                message: "String must contain at least 1 character(s)"
+
+    RateLimited:
+      description: Rate limit exceeded.
+      headers:
+        X-RateLimit-Limit:
+          $ref: "#/components/headers/X-RateLimit-Limit"
+        X-RateLimit-Remaining:
+          $ref: "#/components/headers/X-RateLimit-Remaining"
+        X-RateLimit-Reset:
+          $ref: "#/components/headers/X-RateLimit-Reset"
+        Retry-After:
+          $ref: "#/components/headers/Retry-After"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            object: error
+            status: 429
+            code: rate_limit_exceeded
+            message: "Rate limit exceeded"
+
+    InternalError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            object: error
+            status: 500
+            code: internal_error
+            message: "An unexpected error occurred"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Paths
+# ─────────────────────────────────────────────────────────────────────────────
+
+paths:
+  # ── Boards ──────────────────────────────────────────────────────────────────
+
+  /v1/boards:
+    get:
+      operationId: listBoards
+      tags: [Boards]
+      summary: List boards
+      description: Returns a paginated list of boards owned by the authenticated user, ordered by creation date.
+      parameters:
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/cursorParam"
+        - $ref: "#/components/parameters/orderParam"
+      responses:
+        "200":
+          description: A paginated list of boards.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Board"
+                  has_more:
+                    type: boolean
+                    example: true
+                  cursor:
+                    type: string
+                    nullable: true
+                    example: "eyJpZCI6ImExYjJjM2Q0..."
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    post:
+      operationId: createBoard
+      tags: [Boards]
+      summary: Create a board
+      description: Creates a new board. Defaults to canvas view mode.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  example: "Q1 Marketing Plan"
+                view_mode:
+                  type: string
+                  enum: [canvas, docs]
+                  default: canvas
+                  description: Initial view mode. "docs" creates a document-style board with a root text node.
+      responses:
+        "201":
+          description: Board created.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [board]
+                  data:
+                    $ref: "#/components/schemas/Board"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/boards/{id}:
+    get:
+      operationId: getBoard
+      tags: [Boards]
+      summary: Get a board
+      description: |
+        Retrieves a board by ID. Returns the full board including `flow_state`
+        for boards you own. Public boards return a lightweight view without
+        `flow_state`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      responses:
+        "200":
+          description: Board details.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [board]
+                  data:
+                    $ref: "#/components/schemas/BoardFull"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    patch:
+      operationId: updateBoard
+      tags: [Boards]
+      summary: Update a board
+      description: Updates a board's name or viewport settings. Only the provided fields are changed.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  example: "Q1 Marketing Plan (updated)"
+                viewport_x:
+                  type: number
+                  example: 150.0
+                viewport_y:
+                  type: number
+                  example: -50.0
+                viewport_zoom:
+                  type: number
+                  minimum: 0.1
+                  maximum: 10
+                  example: 1.5
+      responses:
+        "200":
+          description: Board updated.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [board]
+                  data:
+                    $ref: "#/components/schemas/Board"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    delete:
+      operationId: deleteBoard
+      tags: [Boards]
+      summary: Delete a board
+      description: Permanently deletes a board and all of its nested resources (nodes, edges, chats, messages, documents, assets).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      responses:
+        "200":
+          description: Board deleted.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [board]
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      deleted:
+                        type: boolean
+                        example: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/boards/{id}/duplicate:
+    post:
+      operationId: duplicateBoard
+      tags: [Boards]
+      summary: Duplicate a board
+      description: |
+        Creates a copy of a board including its full flow state. Works for
+        boards you own and public boards. The copy is always owned by the
+        authenticated user. The name is suffixed with " (Copy)".
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      responses:
+        "201":
+          description: Duplicated board created.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [board]
+                  data:
+                    $ref: "#/components/schemas/Board"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ── Chats ───────────────────────────────────────────────────────────────────
+
+  /v1/boards/{boardId}/chats:
+    get:
+      operationId: listChats
+      tags: [Chats]
+      summary: List chats
+      description: Returns a paginated list of chat threads on a board.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/cursorParam"
+        - $ref: "#/components/parameters/orderParam"
+        - name: node_id
+          in: query
+          required: false
+          description: Filter chats by the node they are attached to.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: A paginated list of chats.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ChatThread"
+                  has_more:
+                    type: boolean
+                  cursor:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    post:
+      operationId: createChat
+      tags: [Chats]
+      summary: Create a chat
+      description: Creates a new chat thread on a board, optionally linked to a node.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  example: "Brainstorm session"
+                node_id:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: ID of the node this chat is attached to.
+                  example: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+      responses:
+        "201":
+          description: Chat created.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [chat_thread]
+                  data:
+                    $ref: "#/components/schemas/ChatThread"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/boards/{boardId}/chats/{chatId}:
+    get:
+      operationId: getChat
+      tags: [Chats]
+      summary: Get a chat
+      description: Retrieves a single chat thread including its memory and metadata.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/chatId"
+      responses:
+        "200":
+          description: Chat details.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [chat_thread]
+                  data:
+                    $ref: "#/components/schemas/ChatThreadFull"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    patch:
+      operationId: updateChat
+      tags: [Chats]
+      summary: Update a chat
+      description: Updates a chat thread's title or node association.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/chatId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  example: "Updated title"
+                node_id:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  example: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+      responses:
+        "200":
+          description: Chat updated.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [chat_thread]
+                  data:
+                    $ref: "#/components/schemas/ChatThread"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    delete:
+      operationId: deleteChat
+      tags: [Chats]
+      summary: Delete a chat
+      description: Permanently deletes a chat thread and all its messages (via database cascade).
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/chatId"
+      responses:
+        "200":
+          description: Chat deleted.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [chat_thread]
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      deleted:
+                        type: boolean
+                        example: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ── Messages ────────────────────────────────────────────────────────────────
+
+  /v1/boards/{boardId}/chats/{chatId}/messages:
+    get:
+      operationId: listMessages
+      tags: [Messages]
+      summary: List messages
+      description: |
+        Returns a paginated list of messages in a chat thread. Default order
+        is `asc` (chronological) unlike other list endpoints.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/chatId"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/cursorParam"
+        - name: order
+          in: query
+          required: false
+          description: Sort direction. Defaults to `asc` for messages.
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        "200":
+          description: A paginated list of messages.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ChatMessage"
+                  has_more:
+                    type: boolean
+                  cursor:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    post:
+      operationId: sendMessage
+      tags: [Messages]
+      summary: Send a message
+      description: |
+        Sends a user message and receives an AI-generated response. Set
+        `stream: true` to receive the response as Server-Sent Events (SSE).
+
+        **Non-streaming:** Returns the assistant message in the response body.
+
+        **Streaming:** Returns a `text/event-stream` with:
+        - `message.delta` events containing `{ "content": "..." }` fragments
+        - A final `message.complete` event with the full message and token usage
+        - An `error` event if something goes wrong
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/chatId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 100000
+                  description: The user's message text.
+                  example: "What are the top 3 marketing channels for SaaS?"
+                stream:
+                  type: boolean
+                  default: false
+                  description: When true, the response is streamed as SSE.
+      responses:
+        "201":
+          description: |
+            Assistant message created (non-streaming). When `stream: true`,
+            the response is `text/event-stream` instead.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [chat_message]
+                  data:
+                    $ref: "#/components/schemas/ChatMessage"
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE stream with `message.delta`, `message.complete`, and `error` events.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ── Nodes ───────────────────────────────────────────────────────────────────
+
+  /v1/boards/{boardId}/nodes:
+    get:
+      operationId: listNodes
+      tags: [Nodes]
+      summary: List nodes
+      description: Returns a paginated list of nodes on a board. Optionally filter by node type.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/cursorParam"
+        - $ref: "#/components/parameters/orderParam"
+        - name: type
+          in: query
+          required: false
+          description: Filter by node type. Comma-separated for multiple types.
+          schema:
+            type: string
+            example: "chatNode,blockNoteNode"
+      responses:
+        "200":
+          description: A paginated list of nodes.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Node"
+                  has_more:
+                    type: boolean
+                  cursor:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    post:
+      operationId: createNode
+      tags: [Nodes]
+      summary: Create a node
+      description: Creates a new node on a board at the specified position.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, position]
+              properties:
+                type:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: The node type identifier.
+                  example: "chatNode"
+                position:
+                  type: object
+                  required: [x, y]
+                  properties:
+                    x:
+                      type: number
+                      example: 250.5
+                    y:
+                      type: number
+                      example: 120.0
+                data:
+                  type: object
+                  description: Arbitrary metadata for the node.
+                  example: { "label": "Research Agent" }
+      responses:
+        "201":
+          description: Node created.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [node]
+                  data:
+                    $ref: "#/components/schemas/Node"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/boards/{boardId}/nodes/batch:
+    post:
+      operationId: batchNodes
+      tags: [Nodes]
+      summary: Batch node operations
+      description: |
+        Performs multiple create, update, and delete operations on nodes in a
+        single request. Up to 100 operations per call. Operations are executed
+        sequentially; partial failures are reported in the response.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [operations]
+              properties:
+                operations:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    oneOf:
+                      - type: object
+                        required: [action, data]
+                        properties:
+                          action:
+                            type: string
+                            enum: [create]
+                          data:
+                            type: object
+                            required: [type, position]
+                            properties:
+                              type:
+                                type: string
+                                example: "chatNode"
+                              position:
+                                type: object
+                                required: [x, y]
+                                properties:
+                                  x:
+                                    type: number
+                                    example: 100
+                                  y:
+                                    type: number
+                                    example: 200
+                              data:
+                                type: object
+                      - type: object
+                        required: [action, id, data]
+                        properties:
+                          action:
+                            type: string
+                            enum: [update]
+                          id:
+                            type: string
+                            format: uuid
+                            example: "e5f6a7b8-c9d0-1234-efab-345678901234"
+                          data:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                              position:
+                                type: object
+                                properties:
+                                  x:
+                                    type: number
+                                  y:
+                                    type: number
+                              data:
+                                type: object
+                      - type: object
+                        required: [action, id]
+                        properties:
+                          action:
+                            type: string
+                            enum: [delete]
+                          id:
+                            type: string
+                            format: uuid
+                            example: "e5f6a7b8-c9d0-1234-efab-345678901234"
+            example:
+              operations:
+                - action: create
+                  data:
+                    type: chatNode
+                    position: { x: 100, y: 200 }
+                    data: { label: "Agent A" }
+                - action: update
+                  id: "e5f6a7b8-c9d0-1234-efab-345678901234"
+                  data:
+                    position: { x: 300, y: 400 }
+                - action: delete
+                  id: "11223344-5566-7788-99aa-bbccddeeff00"
+      responses:
+        "200":
+          description: Batch result with counts and any errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [batch_result]
+                  data:
+                    $ref: "#/components/schemas/BatchResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/boards/{boardId}/nodes/{id}:
+    get:
+      operationId: getNode
+      tags: [Nodes]
+      summary: Get a node
+      description: Retrieves a single node by ID.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/nodeId"
+      responses:
+        "200":
+          description: Node details.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [node]
+                  data:
+                    $ref: "#/components/schemas/Node"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    patch:
+      operationId: updateNode
+      tags: [Nodes]
+      summary: Update a node
+      description: Updates a node's type, position, or data. Only provided fields are changed.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/nodeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "blockNoteNode"
+                position:
+                  type: object
+                  properties:
+                    x:
+                      type: number
+                      example: 300.0
+                    y:
+                      type: number
+                      example: 150.0
+                data:
+                  type: object
+                  example: { "label": "Updated Agent" }
+      responses:
+        "200":
+          description: Node updated.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [node]
+                  data:
+                    $ref: "#/components/schemas/Node"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    delete:
+      operationId: deleteNode
+      tags: [Nodes]
+      summary: Delete a node
+      description: Permanently deletes a node from the board.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/nodeId"
+      responses:
+        "200":
+          description: Node deleted.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [node]
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      deleted:
+                        type: boolean
+                        example: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ── Edges ───────────────────────────────────────────────────────────────────
+
+  /v1/boards/{boardId}/edges:
+    get:
+      operationId: listEdges
+      tags: [Edges]
+      summary: List edges
+      description: Returns a paginated list of edges on a board. Optionally filter by source or target node.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/cursorParam"
+        - $ref: "#/components/parameters/orderParam"
+        - name: source_node_id
+          in: query
+          required: false
+          description: Filter edges by source node UUID.
+          schema:
+            type: string
+            format: uuid
+        - name: target_node_id
+          in: query
+          required: false
+          description: Filter edges by target node UUID.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: A paginated list of edges.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Edge"
+                  has_more:
+                    type: boolean
+                  cursor:
+                    type: string
+                    nullable: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    post:
+      operationId: createEdge
+      tags: [Edges]
+      summary: Create an edge
+      description: Creates a connection between two nodes on the same board. Both nodes must exist.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source_node_id, target_node_id]
+              properties:
+                source_node_id:
+                  type: string
+                  format: uuid
+                  example: "e5f6a7b8-c9d0-1234-efab-345678901234"
+                target_node_id:
+                  type: string
+                  format: uuid
+                  example: "11223344-5566-7788-99aa-bbccddeeff00"
+                type:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  default: "default"
+                  description: Edge type label.
+                  example: "data-flow"
+                data:
+                  type: object
+                  description: Arbitrary metadata for the edge.
+                  example: { "weight": 1.0 }
+      responses:
+        "201":
+          description: Edge created.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [edge]
+                  data:
+                    $ref: "#/components/schemas/Edge"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/boards/{boardId}/edges/{id}:
+    patch:
+      operationId: updateEdge
+      tags: [Edges]
+      summary: Update an edge
+      description: Updates an edge's type or metadata.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/edgeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "dependency"
+                data:
+                  type: object
+                  example: { "weight": 2.5 }
+      responses:
+        "200":
+          description: Edge updated.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [edge]
+                  data:
+                    $ref: "#/components/schemas/Edge"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    delete:
+      operationId: deleteEdge
+      tags: [Edges]
+      summary: Delete an edge
+      description: Permanently deletes an edge from the board.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/edgeId"
+      responses:
+        "200":
+          description: Edge deleted.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [edge]
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      deleted:
+                        type: boolean
+                        example: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ── Documents ───────────────────────────────────────────────────────────────
+
+  /v1/boards/{boardId}/documents/vectorize:
+    post:
+      operationId: vectorizeDocument
+      tags: [Documents]
+      summary: Vectorize content
+      description: |
+        Chunks text content, generates embeddings, and stores the vectors in
+        the board's document store. Useful for making content searchable via
+        semantic search.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 100000
+                  description: The text content to vectorize.
+                  example: "The quarterly revenue report shows a 15% increase in SaaS subscriptions..."
+                node_id:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Optional node to associate the chunks with.
+                  example: "e5f6a7b8-c9d0-1234-efab-345678901234"
+                metadata:
+                  type: object
+                  description: Additional metadata stored with each chunk.
+                  example: { "source": "annual-report-2026.pdf", "page": 3 }
+      responses:
+        "200":
+          description: Content vectorized and stored.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [vectorize_result]
+                  data:
+                    type: object
+                    properties:
+                      board_id:
+                        type: string
+                        format: uuid
+                      node_id:
+                        type: string
+                        format: uuid
+                        nullable: true
+                      chunks_stored:
+                        type: integer
+                        example: 5
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          description: Embedding service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                object: error
+                status: 503
+                code: service_unavailable
+                message: "Embedding service is not configured"
+
+  /v1/boards/{boardId}/documents/search:
+    post:
+      operationId: searchDocuments
+      tags: [Documents]
+      summary: Semantic search
+      description: |
+        Performs a semantic similarity search across a board's vectorized
+        document chunks. Returns the most relevant chunks ranked by
+        similarity score.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
+                  description: Natural language search query.
+                  example: "What were the Q1 revenue numbers?"
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  default: 10
+                  description: Maximum number of results to return.
+                threshold:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  default: 0.5
+                  description: Minimum similarity score threshold (0-1).
+                node_ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Restrict search to chunks associated with these nodes.
+                  example: ["e5f6a7b8-c9d0-1234-efab-345678901234"]
+      responses:
+        "200":
+          description: Search results ranked by relevance.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SearchResult"
+                  has_more:
+                    type: boolean
+                    example: false
+                  cursor:
+                    type: string
+                    nullable: true
+                    example: null
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          description: Embedding service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/boards/{boardId}/documents/process:
+    post:
+      operationId: processDocument
+      tags: [Documents]
+      summary: Process a document
+      description: |
+        Queues a document for asynchronous processing (parsing, OCR, etc.).
+        Returns a job object you can poll via the Jobs endpoints.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_url]
+              properties:
+                file_url:
+                  type: string
+                  format: uri
+                  description: Public URL of the document to process.
+                  example: "https://storage.chatgrid.ai/board-files/usr_123/brd_456/report.pdf"
+                node_id:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Optional node to associate the processed content with.
+                  example: "e5f6a7b8-c9d0-1234-efab-345678901234"
+      responses:
+        "202":
+          description: Document processing job accepted.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [job]
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      status:
+                        type: string
+                        enum: [processing]
+                      type:
+                        type: string
+                        example: "document_process"
+                      board_id:
+                        type: string
+                        format: uuid
+                      file_url:
+                        type: string
+                        format: uri
+                      node_id:
+                        type: string
+                        nullable: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ── Assets ──────────────────────────────────────────────────────────────────
+
+  /v1/boards/{boardId}/assets:
+    post:
+      operationId: uploadAsset
+      tags: [Assets]
+      summary: Upload a file
+      description: |
+        Uploads a file to a board's asset storage. Accepts `multipart/form-data`
+        with a `file` field. Maximum file size is 50 MB.
+
+        **Allowed content types:** `image/png`, `image/jpeg`, `image/gif`,
+        `image/webp`, `image/svg+xml`, `application/pdf`, `.docx`, `.xlsx`,
+        `.pptx`, `text/plain`, `text/csv`, `audio/mpeg`, `audio/wav`, `video/mp4`.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload.
+      responses:
+        "201":
+          description: File uploaded.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [asset]
+                  data:
+                    $ref: "#/components/schemas/Asset"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    get:
+      operationId: listAssets
+      tags: [Assets]
+      summary: List assets
+      description: Returns all files uploaded to a board.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+      responses:
+        "200":
+          description: List of assets.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Asset"
+                  has_more:
+                    type: boolean
+                    example: false
+                  cursor:
+                    type: string
+                    nullable: true
+                    example: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/boards/{boardId}/assets/{id}:
+    delete:
+      operationId: deleteAsset
+      tags: [Assets]
+      summary: Delete an asset
+      description: Permanently deletes a file from board storage.
+      parameters:
+        - $ref: "#/components/parameters/boardId"
+        - $ref: "#/components/parameters/assetId"
+      responses:
+        "200":
+          description: Asset deleted.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [asset]
+                  data:
+                    type: object
+                    properties:
+                      deleted:
+                        type: boolean
+                        example: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ── Jobs ────────────────────────────────────────────────────────────────────
+
+  /v1/jobs:
+    get:
+      operationId: listJobs
+      tags: [Jobs]
+      summary: List jobs
+      description: Returns all background jobs for the authenticated user. Optionally filter by status.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter by job status.
+          schema:
+            type: string
+            enum: [processing, completed, failed]
+      responses:
+        "200":
+          description: List of jobs.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Job"
+                  has_more:
+                    type: boolean
+                    example: false
+                  cursor:
+                    type: string
+                    nullable: true
+                    example: null
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/jobs/{id}:
+    get:
+      operationId: getJob
+      tags: [Jobs]
+      summary: Get a job
+      description: Retrieves the status and result of a background job.
+      parameters:
+        - $ref: "#/components/parameters/jobId"
+      responses:
+        "200":
+          description: Job details.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [job]
+                  data:
+                    $ref: "#/components/schemas/Job"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ── Me ──────────────────────────────────────────────────────────────────────
+
+  /v1/me:
+    get:
+      operationId: getProfile
+      tags: [Me]
+      summary: Get current user
+      description: Returns the authenticated user's profile.
+      responses:
+        "200":
+          description: User profile.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [user]
+                  data:
+                    $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/me/usage:
+    get:
+      operationId: getUsage
+      tags: [Me]
+      summary: Get credit usage
+      description: Returns the authenticated user's credit balance and usage details.
+      responses:
+        "200":
+          description: Credit usage.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [usage]
+                  data:
+                    $ref: "#/components/schemas/Usage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/me/api-keys:
+    get:
+      operationId: listApiKeys
+      tags: [Me]
+      summary: List API keys
+      description: Returns all non-revoked API keys for the authenticated user. Requires `admin` scope.
+      responses:
+        "200":
+          description: List of API keys.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ApiKey"
+                  has_more:
+                    type: boolean
+                    example: false
+                  cursor:
+                    type: string
+                    nullable: true
+                    example: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    post:
+      operationId: createApiKey
+      tags: [Me]
+      summary: Create an API key
+      description: |
+        Creates a new API key. The full key is returned **only once** in the
+        `raw_key` field -- store it securely. Requires `admin` scope.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  description: A human-readable label for this key.
+                  example: "Production key"
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                    enum: [read, write, admin]
+                  default: ["read", "write"]
+                  description: Scopes to assign. Defaults to read + write.
+                  example: ["read", "write"]
+      responses:
+        "201":
+          description: API key created. The `raw_key` is only returned once.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [api_key]
+                  data:
+                    $ref: "#/components/schemas/ApiKeyCreated"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /v1/me/api-keys/{id}:
+    delete:
+      operationId: revokeApiKey
+      tags: [Me]
+      summary: Revoke an API key
+      description: |
+        Revokes an API key, making it permanently unusable. This action cannot
+        be undone. Requires `admin` scope.
+      parameters:
+        - $ref: "#/components/parameters/apiKeyId"
+      responses:
+        "200":
+          description: API key revoked.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [api_key_revoked]
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      revoked:
+                        type: boolean
+                        example: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"

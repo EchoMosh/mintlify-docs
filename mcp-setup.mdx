@@ -1,0 +1,101 @@
+---
+title: "MCP Setup"
+description: "Add ChatGrid to Claude Code in 2 minutes. Search your team's knowledge without leaving the terminal."
+---
+
+## Step 1: Get an API key
+
+Go to [chatgrid.ai/settings/api-keys](https://www.chatgrid.ai/settings/api-keys) and create a new key. It starts with `cgk_live_`.
+
+## Step 2: Add to your project's `.mcp.json`
+
+Create or edit `.mcp.json` in your project root:
+
+```json .mcp.json
+{
+  "chatgrid": {
+    "command": "npx",
+    "args": ["chatgrid-mcp"],
+    "env": {
+      "CHATGRID_API_KEY": "cgk_live_your_key_here"
+    }
+  }
+}
+```
+
+<Warning>
+  Add `.mcp.json` to your `.gitignore` if it contains your API key directly. Or use an environment variable reference instead.
+</Warning>
+
+## Step 3: Restart Claude Code
+
+Close and reopen Claude Code (or run `/mcp` to reload). You should see `chatgrid` listed as a connected MCP server.
+
+## Step 4: Try it
+
+Talk to Claude Code naturally. It will use ChatGrid tools automatically.
+
+### Create a board
+
+```
+> Create a ChatGrid board for the payments project
+```
+
+### Add content
+
+```
+> Add this YouTube video to the payments board: https://youtube.com/watch?v=abc123
+```
+
+```
+> Add these architecture notes to the board: "We use Stripe webhooks
+  verified with the signing secret. Events go through Inngest for
+  reliable processing. See src/server/stripe/webhooks.ts."
+```
+
+### Search your knowledge
+
+```
+> Search the payments board for webhook verification
+```
+
+```
+> What does our architecture doc say about rate limiting?
+```
+
+### Ask questions
+
+```
+> Based on our team's board, how should I implement retry logic
+  for failed payment webhooks?
+```
+
+Claude Code will search your board, find relevant sources, and give you an answer grounded in your team's actual knowledge.
+
+## What tools are available?
+
+The MCP server gives Claude Code these capabilities:
+
+| Tool | What it does |
+|------|-------------|
+| **List boards** | See all your team's boards |
+| **Create board** | Start a new project board |
+| **Add content** | Vectorize URLs, text, or documents |
+| **Search** | Semantic search across a board's knowledge |
+| **Ask AI** | Ask questions answered by board content |
+
+## Tips
+
+<AccordionGroup>
+  <Accordion title="One board per project">
+    Keep boards focused. A "Payments" board, a "Frontend" board, an "Infrastructure" board. Don't dump everything in one board.
+  </Accordion>
+
+  <Accordion title="Add content as you go">
+    Found a useful Stack Overflow answer? Tell Claude Code to add it to the board. Read a good blog post? Add it. The board gets smarter over time.
+  </Accordion>
+
+  <Accordion title="Share with your team">
+    Everyone on the team can use the same API key (or their own). The board is shared. One dev adds a doc, everyone benefits.
+  </Accordion>
+</AccordionGroup>

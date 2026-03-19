@@ -1,0 +1,89 @@
+---
+title: "Authentication"
+description: "Authenticate with the ChatGrid API using API keys or JWTs."
+---
+
+The ChatGrid API supports two authentication methods: **API keys** (recommended
+for server-to-server) and **Supabase JWTs** (used by the web app).
+
+## API keys
+
+API keys are the recommended way to authenticate. They start with the `cgk_`
+prefix and are passed in the `Authorization` header.
+
+```bash
+curl https://api.chatgrid.ai/v1/boards \
+  -H "Authorization: Bearer cgk_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```
+
+### Creating an API key
+
+You can create API keys from the [dashboard](https://www.chatgrid.ai/settings/api-keys) or
+via the API itself (requires `admin` scope):
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/me/api-keys \
+  -H "Authorization: Bearer cgk_live_your_admin_key" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "CI/CD Pipeline", "scopes": ["read", "write"]}'
+```
+
+The full key is returned **only once** in the `raw_key` field. Store it
+securely -- it cannot be retrieved again.
+
+### Key security
+
+- Keys are stored as SHA-256 hashes. ChatGrid never stores your raw key.
+- Revoked or expired keys are rejected immediately.
+- Each key's `last_used_at` is tracked for auditing.
+
+## Scopes
+
+Each API key has one or more scopes that control what it can access:
+
+| Scope | Permissions |
+|-------|-------------|
+| `read` | List and retrieve resources (boards, chats, messages, nodes, etc.) |
+| `write` | Create, update, and delete resources. Includes everything in `read`. |
+| `admin` | Manage API keys and access admin-only endpoints. Includes everything in `write`. |
+
+If a request requires a scope your key does not have, you receive a `403 Forbidden`:
+
+```json
+{
+  "object": "error",
+  "status": 403,
+  "code": "forbidden",
+  "message": "Missing required scope: write"
+}
+```
+
+### Scope requirements by endpoint
+
+| Method | Scope required |
+|--------|---------------|
+| `GET` (list/retrieve) | `read` |
+| `POST`, `PATCH`, `DELETE` (mutate) | `write` |
+| `GET /me/api-keys`, `POST /me/api-keys`, `DELETE /me/api-keys/:id` | `admin` |
+
+## JWT authentication
+
+The ChatGrid web app authenticates with Supabase JWTs. If you are building a
+frontend integration, you can pass the user's Supabase access token:
+
+```bash
+curl https://api.chatgrid.ai/v1/boards \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..."
+```
+
+JWT-authenticated requests automatically have `read`, `write`, and `admin`
+scopes. Rate limits differ from API key limits (200 req/min for JWTs).
+
+## Error responses
+
+| Status | Code | Meaning |
+|--------|------|---------|
+| 401 | `unauthorized` | Missing or invalid token |
+| 401 | `unauthorized` | API key has been revoked |
+| 401 | `unauthorized` | API key has expired |
+| 403 | `forbidden` | Token lacks the required scope |

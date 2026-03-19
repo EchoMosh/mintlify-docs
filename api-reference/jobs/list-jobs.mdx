@@ -1,0 +1,46 @@
+---
+title: "List Jobs"
+api: "GET /v1/jobs"
+description: "Returns all background jobs for the authenticated user."
+---
+
+<ParamField query="status" type="string">
+  Filter by job status. One of `processing`, `completed`, or `failed`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl "https://api.chatgrid.ai/v1/jobs?status=processing" \
+  -H "Authorization: Bearer cgk_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "ccdd1122-3344-5566-7788-99aabbccddee",
+      "type": "document_process",
+      "status": "processing",
+      "result": null,
+      "error": null,
+      "created_at": "2026-03-15T11:00:00.000Z",
+      "completed_at": null
+    },
+    {
+      "id": "ddee2233-4455-6677-8899-aabbccddeeff",
+      "type": "document_process",
+      "status": "completed",
+      "result": { "chunks": 12 },
+      "error": null,
+      "created_at": "2026-03-15T10:00:00.000Z",
+      "completed_at": "2026-03-15T10:02:30.000Z"
+    }
+  ],
+  "has_more": false,
+  "cursor": null
+}
+```
+</ResponseExample>

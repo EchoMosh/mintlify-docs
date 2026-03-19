@@ -1,0 +1,110 @@
+---
+title: "Add YouTube Videos and PDFs to Your Board"
+description: "Vectorize content and search it. Videos, PDFs, and web pages become searchable knowledge."
+---
+
+## YouTube videos
+
+Drop a YouTube URL. ChatGrid extracts the transcript, chunks it, and vectorizes it.
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/vectorize \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://youtube.com/watch?v=your-video-id"}'
+```
+
+<Note>
+  Long videos (1+ hours) may take 30-60 seconds to process. Use the [Jobs endpoint](/api-reference/jobs/get-job) to check status.
+</Note>
+
+## PDFs
+
+Upload a PDF, then vectorize it.
+
+```bash
+# Step 1: Upload the file
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/assets \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@architecture.pdf"
+
+# Step 2: Vectorize it (use the asset URL from step 1)
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/vectorize \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "{assetUrl}", "metadata": {"source": "architecture.pdf"}}'
+```
+
+Text is extracted from the PDF (including scanned pages via OCR), then vectorized.
+
+## Web pages
+
+Any public URL works. ChatGrid fetches and vectorizes the content.
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/vectorize \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://blog.example.com/postgres-scaling-tips"}'
+```
+
+## Plain text
+
+Paste in notes, decisions, meeting summaries -- anything.
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/vectorize \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Decision: We chose Inngest over Temporal for job orchestration. Reasons: managed service, no infra to operate, built-in rate limiting. Temporal is the upgrade path if we outgrow Inngest.",
+    "metadata": {"source": "decision-log", "date": "2026-03-04"}
+  }'
+```
+
+## Search your content
+
+Once content is vectorized, search it semantically.
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/search \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "why did we choose Inngest?", "limit": 3}'
+```
+
+Returns the most relevant chunks with their source metadata:
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "content": "Decision: We chose Inngest over Temporal for job orchestration...",
+      "metadata": {"source": "decision-log", "date": "2026-03-04"},
+      "similarity": 0.92
+    }
+  ]
+}
+```
+
+## In Claude Code
+
+All of this works via natural language with MCP:
+
+```
+> Add this YouTube video to the board: https://youtube.com/watch?v=...
+> Upload and vectorize architecture.pdf to the backend board
+> Search the board for "why did we choose Inngest?"
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Team Knowledge" icon="users" href="/cookbooks/team-knowledge">
+    Share a board across your whole team
+  </Card>
+  <Card title="Streaming" icon="bolt" href="/cookbooks/streaming-responses">
+    Stream AI responses in real time
+  </Card>
+</CardGroup>

@@ -1,0 +1,48 @@
+---
+title: "Update Edge"
+api: "PATCH /v1/boards/{boardId}/edges/{id}"
+description: "Updates an edge's type or metadata."
+---
+
+<ParamField path="boardId" type="string" required>
+  Board UUID.
+</ParamField>
+
+<ParamField path="id" type="string" required>
+  Edge UUID.
+</ParamField>
+
+<ParamField body="type" type="string">
+  New edge type. 1-100 characters.
+</ParamField>
+
+<ParamField body="data" type="object">
+  New metadata. Replaces the existing `edge_data`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X PATCH "https://api.chatgrid.ai/v1/boards/a1b2c3d4-e5f6-7890-abcd-ef1234567890/edges/f6a7b8c9-d0e1-2345-fabc-456789012345" \
+  -H "Authorization: Bearer cgk_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "dependency", "data": {"weight": 2.5}}'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "object": "edge",
+  "data": {
+    "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+    "board_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "source_node_id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+    "target_node_id": "11223344-5566-7788-99aa-bbccddeeff00",
+    "edge_type": "dependency",
+    "edge_data": { "weight": 2.5 },
+    "created_at": "2026-03-15T10:35:00.000Z",
+    "updated_at": "2026-03-15T14:00:00.000Z"
+  }
+}
+```
+</ResponseExample>

@@ -1,0 +1,122 @@
+---
+title: "Build a Team Knowledge Base"
+description: "Three devs, one board. Knowledge that survives Slack, team changes, and bad memory."
+---
+
+## The scenario
+
+A team of three devs working on a payments service:
+
+- **Alex** just watched a great Stripe webhooks tutorial
+- **Jordan** wrote architecture notes about the retry system
+- **Sam** is new and needs to get up to speed
+
+They share one ChatGrid board. Here's how it works.
+
+## Alex adds a tutorial
+
+Alex found a YouTube video explaining Stripe webhook best practices.
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/vectorize \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://youtube.com/watch?v=stripe-webhooks-101"}'
+```
+
+```text Claude Code
+> Add this video to the payments board: https://youtube.com/watch?v=stripe-webhooks-101
+```
+</CodeGroup>
+
+The video transcript is extracted, chunked, and vectorized. Every team member (and their AI tools) can now search it.
+
+## Jordan adds architecture notes
+
+Jordan documents how the retry system works.
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/vectorize \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "## Retry System\n\nFailed webhooks go through Inngest with exponential backoff.\nMax 5 retries over 24 hours.\nAfter exhaustion, events land in the dead letter queue (Supabase table: failed_webhooks).\nAlert fires in Sentry if DLQ depth > 10.\n\nConfig: src/server/inngest/functions/stripeWebhook.ts",
+    "metadata": {"source": "architecture-notes", "author": "jordan"}
+  }'
+```
+
+```text Claude Code
+> Add these notes to the payments board:
+  "## Retry System
+  Failed webhooks go through Inngest with exponential backoff.
+  Max 5 retries over 24 hours. After exhaustion, events land in
+  the dead letter queue (Supabase table: failed_webhooks).
+  Alert fires in Sentry if DLQ depth > 10.
+  Config: src/server/inngest/functions/stripeWebhook.ts"
+```
+</CodeGroup>
+
+## Sam searches the board
+
+Sam just joined. They need to understand how webhook retries work.
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/search \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "how do webhook retries work?", "limit": 5}'
+```
+
+```text Claude Code
+> Search the payments board for webhook retry logic
+```
+</CodeGroup>
+
+The search returns Jordan's architecture notes AND relevant parts of Alex's YouTube video. Sam gets the full picture without bothering anyone.
+
+## Sam asks a follow-up question
+
+```text Claude Code
+> Based on our payments board, what happens when a webhook fails
+  after all retries are exhausted?
+```
+
+AI responds using the board's actual content:
+
+```
+Based on Jordan's architecture notes:
+Failed webhooks go to the dead letter queue (Supabase table: failed_webhooks).
+A Sentry alert fires if the DLQ depth exceeds 10.
+The config is in src/server/inngest/functions/stripeWebhook.ts.
+```
+
+No guessing. No hallucination. Grounded in what the team actually documented.
+
+## Why this matters
+
+<Note>
+  If Alex had shared that tutorial in Slack, it would be gone in 2 days. If Jordan had put those notes in a Google Doc, Sam would never find it.
+
+  On the board, both are searchable forever. By humans and AI.
+</Note>
+
+| Without ChatGrid | With ChatGrid |
+|-------------------|---------------|
+| Knowledge dies in Slack | Knowledge lives on the board |
+| New devs bother senior devs | New devs ask AI, get sourced answers |
+| Tribal knowledge leaves with people | Knowledge stays with the project |
+| AI gives generic answers | AI gives answers from your actual docs |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Add Videos & PDFs" icon="file" href="/cookbooks/knowledge-base">
+    Vectorize YouTube videos and PDFs for your board
+  </Card>
+  <Card title="MCP Workflow" icon="terminal" href="/cookbooks/mcp-workflow">
+    Use ChatGrid in Claude Code for a real debugging workflow
+  </Card>
+</CardGroup>

@@ -1,0 +1,86 @@
+---
+title: "Rate Limits"
+description: "Understand ChatGrid API rate limits and how to handle them."
+---
+
+The ChatGrid API uses a sliding-window rate limiter to protect the platform
+from abuse and ensure fair usage.
+
+## Limits
+
+| Auth method | Default limit | Window |
+|-------------|---------------|--------|
+| API key | Configurable per key (default 120 req/min) | 1 minute |
+| JWT | 200 req/min | 1 minute |
+
+API key rate limits can be customized when the key is created. Contact support
+if you need higher limits.
+
+## Rate limit headers
+
+Every response includes rate limit headers so you can track your usage:
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum requests allowed in the current window |
+| `X-RateLimit-Remaining` | Requests remaining before the limit is reached |
+| `X-RateLimit-Reset` | Unix epoch timestamp (seconds) when the window resets |
+
+Example response headers:
+
+```http
+X-RateLimit-Limit: 120
+X-RateLimit-Remaining: 117
+X-RateLimit-Reset: 1711843260
+```
+
+## Exceeding the limit
+
+When you exceed your rate limit, the API returns a `429` status code with a
+`Retry-After` header indicating how many seconds to wait:
+
+```json
+{
+  "object": "error",
+  "status": 429,
+  "code": "rate_limit_exceeded",
+  "message": "Rate limit exceeded"
+}
+```
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 42
+X-RateLimit-Limit: 120
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1711843260
+```
+
+## Best practices
+
+1. **Check headers proactively.** Monitor `X-RateLimit-Remaining` and slow down
+   before hitting the limit.
+
+2. **Implement exponential backoff.** On 429 responses, wait at least
+   `Retry-After` seconds, then retry with increasing delays.
+
+3. **Use batch endpoints.** The [batch nodes endpoint](/api-reference/nodes/batch-nodes)
+   lets you perform up to 100 operations in a single request.
+
+4. **Cache responses.** For data that does not change often (board metadata,
+   node positions), cache locally to reduce request volume.
+
+```python
+import time
+import requests
+
+def make_request(url, headers):
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 429:
+        retry_after = int(response.headers.get("Retry-After", 5))
+        time.sleep(retry_after)
+        return make_request(url, headers)
+
+    return response
+```

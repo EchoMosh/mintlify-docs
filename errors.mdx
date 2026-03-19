@@ -1,0 +1,114 @@
+---
+title: "Errors"
+description: "Error response format and common error codes."
+---
+
+The ChatGrid API uses conventional HTTP status codes and returns a consistent
+JSON error envelope for every error response.
+
+## Error response format
+
+```json
+{
+  "object": "error",
+  "status": 400,
+  "code": "validation_error",
+  "message": "Invalid request body",
+  "details": [
+    {
+      "code": "too_small",
+      "path": "name",
+      "message": "String must contain at least 1 character(s)"
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `object` | string | Always `"error"` |
+| `status` | integer | HTTP status code |
+| `code` | string | Machine-readable error code |
+| `message` | string | Human-readable description |
+| `details` | array | Optional. Field-level validation errors |
+
+## Common error codes
+
+### 400 Bad Request
+
+| Code | Meaning |
+|------|---------|
+| `validation_error` | Request body or query parameters failed schema validation. Check the `details` array for specifics. |
+| `invalid_cursor` | The pagination cursor is malformed or expired. |
+| `no_updates` | PATCH request contained no fields to update. |
+
+### 401 Unauthorized
+
+| Code | Meaning |
+|------|---------|
+| `unauthorized` | Missing `Authorization` header, invalid token, revoked API key, or expired API key. |
+
+### 403 Forbidden
+
+| Code | Meaning |
+|------|---------|
+| `forbidden` | The authenticated token lacks the required scope for this endpoint. |
+
+### 404 Not Found
+
+| Code | Meaning |
+|------|---------|
+| `not_found` | The requested resource does not exist or is not accessible to you. |
+| `board_not_found` | The board specified in the path does not exist or you do not own it. |
+
+### 429 Too Many Requests
+
+| Code | Meaning |
+|------|---------|
+| `rate_limit_exceeded` | You have exceeded the per-key or per-user rate limit. See the `Retry-After` header. |
+
+### 500 Internal Server Error
+
+| Code | Meaning |
+|------|---------|
+| `internal_error` | An unexpected server-side error. If this persists, contact support. |
+
+### 501 Not Implemented
+
+| Code | Meaning |
+|------|---------|
+| `not_implemented` | The endpoint exists but the feature is not yet available. |
+
+### 503 Service Unavailable
+
+| Code | Meaning |
+|------|---------|
+| `service_unavailable` | A downstream service (e.g., embedding model) is unavailable. Retry after a few seconds. |
+
+## Handling errors
+
+```typescript
+const response = await fetch("https://api.chatgrid.ai/v1/boards", {
+  headers: { Authorization: `Bearer ${apiKey}` },
+});
+
+if (!response.ok) {
+  const error = await response.json();
+
+  switch (error.status) {
+    case 401:
+      // Re-authenticate or refresh token
+      break;
+    case 429:
+      const retryAfter = response.headers.get("Retry-After");
+      // Wait and retry
+      break;
+    case 400:
+      // Log validation details
+      console.error("Validation errors:", error.details);
+      break;
+    default:
+      console.error(`API error: ${error.code} - ${error.message}`);
+  }
+}
+```

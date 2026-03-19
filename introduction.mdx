@@ -1,0 +1,106 @@
+---
+title: "Introduction"
+description: "A visual knowledge board for your team. Drop in videos, docs, and links. AI answers from all of it."
+---
+
+## What is ChatGrid?
+
+A **visual knowledge board** for your team's projects. Drop in YouTube videos, PDFs, docs, links, and notes. AI searches and answers questions from all of it.
+
+Works inside Claude Code via MCP. Works via REST API. Works in the browser.
+
+```
+Team adds knowledge  -->  Board stores & vectorizes  -->  AI answers from your sources
+(videos, docs, links)     (searchable, persistent)       (grounded in real content)
+```
+
+## The problem
+
+Your team's knowledge dies in Slack threads. It gets lost in wikis nobody updates. It lives in people's heads.
+
+When a dev leaves, the knowledge leaves with them. When a new dev joins, it's 3 days of "ask Sarah, she knows."
+
+Memory tools like claude-mem remember what **one** dev did. ChatGrid remembers what the **whole team** knows.
+
+## How it works
+
+<Steps>
+  <Step title="Create a board for your project">
+    One board per project, team, or topic. Like a shared folder, but smarter.
+  </Step>
+  <Step title="Add knowledge">
+    YouTube videos, PDFs, blog posts, architecture docs, meeting notes, decisions. Everything gets vectorized automatically.
+  </Step>
+  <Step title="Ask AI questions">
+    AI answers are grounded in your project's actual sources. Not hallucinated. Not generic. Your team's real knowledge.
+  </Step>
+</Steps>
+
+## Works inside your IDE
+
+Configure the ChatGrid MCP server in Claude Code. Your AI assistant can search your team's boards, add new resources, and answer questions -- all without leaving the terminal.
+
+```json .mcp.json
+{
+  "chatgrid": {
+    "command": "npx",
+    "args": ["chatgrid-mcp"],
+    "env": {
+      "CHATGRID_API_KEY": "cgk_live_..."
+    }
+  }
+}
+```
+
+Then just talk to Claude Code naturally:
+
+```
+> Search the payments board for how webhook verification works
+> Add this YouTube video to the board: https://youtube.com/watch?v=...
+> What does our architecture doc say about rate limiting?
+```
+
+## Base URL
+
+```
+https://api.chatgrid.ai/v1
+```
+
+## Quick start
+
+```bash
+# Create a board
+curl -X POST https://api.chatgrid.ai/v1/boards \
+  -H "Authorization: Bearer cgk_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Payments Project"}'
+
+# Add a YouTube video
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/vectorize \
+  -H "Authorization: Bearer cgk_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://youtube.com/watch?v=dQw4w9WgXcQ"}'
+
+# Search your board
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/search \
+  -H "Authorization: Bearer cgk_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "how does webhook verification work?"}'
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Use Cases" icon="lightbulb" href="/use-cases">
+    See how teams use ChatGrid for onboarding, shared knowledge, and learning
+  </Card>
+  <Card title="MCP Setup" icon="terminal" href="/mcp-setup">
+    Add ChatGrid to Claude Code in 2 minutes
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/cookbooks/quickstart">
+    Set up your first project board with the API
+  </Card>
+  <Card title="Team Knowledge" icon="users" href="/cookbooks/team-knowledge">
+    Build a shared knowledge base for your team
+  </Card>
+</CardGroup>

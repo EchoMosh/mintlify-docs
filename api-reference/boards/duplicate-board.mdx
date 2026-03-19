@@ -1,0 +1,38 @@
+---
+title: "Duplicate Board"
+api: "POST /v1/boards/{id}/duplicate"
+description: "Creates a copy of a board including its full canvas state."
+---
+
+<ParamField path="id" type="string" required>
+  Board UUID of the board to duplicate.
+</ParamField>
+
+Works for boards you own and public boards. The copy is always owned by the
+authenticated user. The name is suffixed with " (Copy)".
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.chatgrid.ai/v1/boards/a1b2c3d4-e5f6-7890-abcd-ef1234567890/duplicate \
+  -H "Authorization: Bearer cgk_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201
+{
+  "object": "board",
+  "data": {
+    "id": "ff112233-4455-6677-8899-aabbccddeeff",
+    "name": "Q1 Marketing Plan (Copy)",
+    "created_at": "2026-03-15T14:00:00.000Z",
+    "updated_at": "2026-03-15T14:00:00.000Z",
+    "is_public": false,
+    "public_access_level": null,
+    "viewport_x": 0,
+    "viewport_y": 0,
+    "viewport_zoom": 1
+  }
+}
+```
+</ResponseExample>

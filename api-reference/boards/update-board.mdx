@@ -1,0 +1,55 @@
+---
+title: "Update Board"
+api: "PATCH /v1/boards/{id}"
+description: "Updates a board's name or viewport settings."
+---
+
+<ParamField path="id" type="string" required>
+  Board UUID.
+</ParamField>
+
+<ParamField body="name" type="string">
+  New board name. 1-255 characters.
+</ParamField>
+
+<ParamField body="viewport_x" type="number">
+  Viewport X offset.
+</ParamField>
+
+<ParamField body="viewport_y" type="number">
+  Viewport Y offset.
+</ParamField>
+
+<ParamField body="viewport_zoom" type="number">
+  Viewport zoom level (0.1-10).
+</ParamField>
+
+Only the provided fields are changed.
+
+<RequestExample>
+```bash cURL
+curl -X PATCH https://api.chatgrid.ai/v1/boards/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer cgk_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Q1 Marketing Plan (final)", "viewport_zoom": 1.5}'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "object": "board",
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Q1 Marketing Plan (final)",
+    "created_at": "2026-03-15T10:30:00.000Z",
+    "updated_at": "2026-03-15T14:00:00.000Z",
+    "is_public": false,
+    "public_access_level": null,
+    "viewport_x": 0,
+    "viewport_y": 0,
+    "viewport_zoom": 1.5
+  }
+}
+```
+</ResponseExample>

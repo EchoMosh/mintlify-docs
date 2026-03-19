@@ -1,0 +1,119 @@
+---
+title: "Set Up Your First Project Board"
+description: "Create a board, add knowledge, search it, and ask AI a question. 5 minutes."
+---
+
+## What you'll do
+
+1. Create a project board
+2. Add 3 resources (a YouTube URL, some text, a link)
+3. Search the board
+4. Ask AI a question grounded in your content
+
+## Option A: Using Claude Code (MCP)
+
+If you've [set up MCP](/mcp-setup), just talk naturally:
+
+```
+> Create a ChatGrid board called "Backend Project"
+
+> Add this YouTube video to the board: https://youtube.com/watch?v=abc123
+
+> Add these notes to the board: "We use PostgreSQL with pgvector
+  for embeddings. Connection pooling via PgBouncer. See db/README
+  for schema migrations."
+
+> Add this blog post to the board: https://blog.example.com/postgres-performance-tips
+
+> Search the board for connection pooling
+
+> Based on the board, how should I configure PgBouncer for serverless?
+```
+
+That's it. Five prompts, and you have a searchable knowledge base.
+
+---
+
+## Option B: Using the API
+
+### Prerequisites
+
+- A ChatGrid account at [chatgrid.ai](https://chatgrid.ai)
+- An API key from [Settings > API Keys](https://www.chatgrid.ai/settings/api-keys)
+
+### Create a board
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/boards \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Backend Project"}'
+```
+
+Save the `board_id` from the response.
+
+### Add a YouTube video
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/vectorize \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://youtube.com/watch?v=abc123"}'
+```
+
+The transcript is extracted and vectorized automatically.
+
+### Add text notes
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/vectorize \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "We use PostgreSQL with pgvector for embeddings. Connection pooling via PgBouncer. See db/README for schema migrations.",
+    "metadata": {"source": "architecture-notes"}
+  }'
+```
+
+### Add a link
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/vectorize \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://blog.example.com/postgres-performance-tips"}'
+```
+
+### Search the board
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/documents/search \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "connection pooling", "limit": 3}'
+```
+
+### Ask AI a question
+
+```bash
+curl -X POST https://api.chatgrid.ai/v1/boards/{boardId}/chats/{chatId}/messages \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Based on the board, how should I configure PgBouncer for serverless?",
+    "stream": false
+  }'
+```
+
+The AI answers using your board's content as context -- not generic knowledge.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Team Knowledge" icon="users" href="/cookbooks/team-knowledge">
+    Share a board across your team
+  </Card>
+  <Card title="MCP Workflow" icon="terminal" href="/cookbooks/mcp-workflow">
+    Use ChatGrid in Claude Code for real debugging workflows
+  </Card>
+</CardGroup>

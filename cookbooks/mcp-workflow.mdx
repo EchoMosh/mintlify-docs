@@ -1,0 +1,88 @@
+---
+title: "Using ChatGrid in Claude Code"
+description: "A real workflow: debugging a production issue with your team's knowledge board."
+---
+
+## The scenario
+
+You're debugging a 502 error on the payments webhook endpoint. Your team has a ChatGrid board with architecture docs, tutorials, and past incident postmortems.
+
+Here's how you use it without leaving the terminal.
+
+## Step 1: Search for relevant knowledge
+
+```
+> Search the payments board for webhook 502 errors
+```
+
+Claude Code finds two relevant sources:
+- A postmortem from February about webhook timeouts
+- Jordan's architecture notes about the retry system
+
+## Step 2: Get context on the architecture
+
+```
+> Based on our board, how is the webhook endpoint structured?
+  What middleware does it go through?
+```
+
+Claude Code searches the board and responds with specifics from your team's docs -- not generic advice.
+
+## Step 3: Find a related tutorial
+
+```
+> Search the board for Stripe webhook signature verification
+```
+
+Alex added a YouTube tutorial last week. The relevant section is returned automatically.
+
+## Step 4: Add what you learn
+
+You figure out the issue: the webhook timeout was set to 5 seconds, but Stripe sometimes takes 8 seconds to send the full payload.
+
+Save that knowledge for the team:
+
+```
+> Add this to the payments board:
+  "Incident 2026-03-19: Webhook 502s caused by 5s timeout on
+  /api/stripe/webhook. Stripe payloads for subscription events
+  can take up to 8s. Fix: increased timeout to 15s in
+  fly.toml [http_service] section. Also added retry-after
+  header handling."
+```
+
+Now the next person who hits this issue will find your notes instantly.
+
+## Step 5: Ask a broader question
+
+```
+> Based on everything on our payments board, what are the top 3
+  reliability risks for our webhook system?
+```
+
+AI synthesizes across all your board's content -- postmortems, architecture notes, tutorials -- and gives you a prioritized answer.
+
+## The full loop
+
+```
+Search board  -->  Get context  -->  Fix the issue  -->  Add what you learned
+                                                              |
+                                                              v
+                                                    Next person finds it
+```
+
+Every debugging session makes the board smarter. Knowledge compounds instead of disappearing.
+
+## More example prompts
+
+| What you're doing | What you say to Claude Code |
+|---|---|
+| Starting a new feature | "What does our board say about the payments data model?" |
+| Reviewing a PR | "Search the board for our error handling conventions" |
+| Debugging | "Search the board for issues with Supabase connection pooling" |
+| Making a decision | "Based on our board, what are the pros/cons of Inngest vs Temporal?" |
+| Onboarding | "Summarize everything on the payments board for a new team member" |
+
+<Note>
+  Need to set up MCP first? See the [MCP Setup guide](/mcp-setup).
+</Note>

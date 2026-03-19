@@ -1,0 +1,47 @@
+---
+title: "List Assets"
+api: "GET /v1/boards/{boardId}/assets"
+description: "Returns all files uploaded to a board."
+---
+
+<ParamField path="boardId" type="string" required>
+  Board UUID.
+</ParamField>
+
+Returns all assets for the board. This endpoint does not support cursor-based
+pagination -- it returns the complete list.
+
+<RequestExample>
+```bash cURL
+curl "https://api.chatgrid.ai/v1/boards/a1b2c3d4-e5f6-7890-abcd-ef1234567890/assets" \
+  -H "Authorization: Bearer cgk_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "aabb1122-3344-5566-7788-99aabbccddee",
+      "url": "https://storage.chatgrid.ai/board-files/usr_123/brd_456/1711843260000-report.pdf",
+      "filename": "1711843260000-report.pdf",
+      "size": 245760,
+      "content_type": "application/pdf",
+      "created_at": "2026-03-15T11:00:00.000Z"
+    },
+    {
+      "id": "bbcc2233-4455-6677-8899-aabbccddeeff",
+      "url": "https://storage.chatgrid.ai/board-files/usr_123/brd_456/1711843300000-diagram.png",
+      "filename": "1711843300000-diagram.png",
+      "size": 102400,
+      "content_type": "image/png",
+      "created_at": "2026-03-15T11:05:00.000Z"
+    }
+  ],
+  "has_more": false,
+  "cursor": null
+}
+```
+</ResponseExample>
