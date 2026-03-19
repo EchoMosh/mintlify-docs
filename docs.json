@@ -1,5 +1,6 @@
 {
-  "$schema": "https://mintlify.com/schema.json",
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
   "name": "ChatGrid API",
   "logo": {
     "light": "/logo/light.svg",
@@ -161,4 +162,3 @@
     "x": "https://x.com/chatgridai"
   }
 }
-
